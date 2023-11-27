@@ -72,7 +72,7 @@ python scripts/run_mipnerf360_stmt.py
 ```
 
 # Acknowledgements
-This project is built upon [3DGS](https://github.com/graphdeco-inria/gaussian-splatting). Please follow the liscene of 3DGS. We thank all the authors for their great work and repos. 
+This project is built upon [3DGS](https://github.com/graphdeco-inria/gaussian-splatting). Please follow the license of 3DGS. We thank all the authors for their great work and repos. 
 
 # Citation
 If you find our code or paper useful, please cite
