@@ -1,4 +1,4 @@
-# single scale trainig and single scale testing as in the original mipnerf-360
+# single-scale trainig and single-scale testing as in the original mipnerf-360
 
 import os
 import GPUtil

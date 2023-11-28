@@ -1,4 +1,4 @@
-# single scale training and multi-scale testing setting proposed in mip-splatting
+# single-scale training and multi-scale testing setting proposed in mip-splatting
 import os
 import GPUtil
 from concurrent.futures import ThreadPoolExecutor
