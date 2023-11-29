@@ -13,7 +13,7 @@
     <a href="http://www.cvlibs.net/">Andreas Geiger</a>
 
   </p>
-  <h3 align="center"><a href="https://drive.google.com/file/d/1Q7KgGbynzcIEyFJV1I17HgrYz6xrOwRJ/view?usp=sharing">Paper</a> | <a href="https://niujinshuchong.github.io/mip-splatting/">Project Page</a></h3>
+  <h3 align="center"><a href="https://drive.google.com/file/d/1Q7KgGbynzcIEyFJV1I17HgrYz6xrOwRJ/view?usp=sharing">Paper</a> | <a href="https://arxiv.org/pdf/2311.16493.pdf">arXiv</a> | <a href="https://niujinshuchong.github.io/mip-splatting/">Project Page</a></h3>
   <div align="center"></div>
 </p>
 
@@ -45,7 +45,7 @@ conda install cudatoolkit-dev=11.3 -c conda-forge
 pip install -r requirements.txt
 
 pip install submodules/diff-gaussian-rasterization
-pip install submodules/submodules/simple-knn/
+pip install submodules/simple-knn/
 ```
 
 # Dataset
@@ -79,10 +79,10 @@ This project is built upon [3DGS](https://github.com/graphdeco-inria/gaussian-sp
 # Citation
 If you find our code or paper useful, please cite
 ```bibtex
-@article{Yu2022MipSplatting,
+@article{Yu2023MipSplatting,
   author    = {Yu, Zehao and Chen, Anpei and Huang, Binbin and Sattler, Torsten and Geiger, Andreas},
   title     = {Mip-Splatting: Alias-free 3D Gaussian Splatting},
-  journal   = {arXiv:2311.xxxxx},
+  journal   = {arXiv:2311.16493},
   year      = {2023},
 }
 ```
