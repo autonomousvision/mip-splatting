@@ -282,6 +282,25 @@ class GaussianModel:
         el = PlyElement.describe(elements, 'vertex')
         PlyData([el]).write(path)
 
+    def save_ply_sibr(self, path):
+        mkdir_p(os.path.dirname(path))
+
+        xyz = self._xyz.detach().cpu().numpy()
+        normals = np.zeros_like(xyz)
+        f_dc = self._features_dc.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
+        f_rest = self._features_rest.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
+        opacities = self.get_opacity_with_3D_filter.detach().cpu().numpy()
+        scale = self.get_scaling_with_3D_filter.detach().cpu().numpy()
+        rotation = self._rotation.detach().cpu().numpy()
+
+        dtype_full = [(attribute, 'f4') for attribute in self.construct_list_of_attributes()[:-1]]
+
+        elements = np.empty(xyz.shape[0], dtype=dtype_full)
+        attributes = np.concatenate((xyz, normals, f_dc, f_rest, opacities, scale, rotation), axis=1)
+        elements[:] = list(map(tuple, attributes))
+        el = PlyElement.describe(elements, 'vertex')
+        PlyData([el]).write(path)
+
     def reset_opacity(self):
         # reset opacity to by considering 3D filter
         current_opacity_with_filter = self.get_opacity_with_3D_filter
