@@ -13,7 +13,7 @@
     <a href="http://www.cvlibs.net/">Andreas Geiger</a>
 
   </p>
-  <h3 align="center"><a href="https://drive.google.com/file/d/1Q7KgGbynzcIEyFJV1I17HgrYz6xrOwRJ/view?usp=sharing">Paper</a> | <a href="https://arxiv.org/pdf/2311.16493.pdf">arXiv</a> | <a href="https://niujinshuchong.github.io/mip-splatting/">Project Page</a></h3>
+  <h3 align="center"><a href="https://drive.google.com/file/d/1Q7KgGbynzcIEyFJV1I17HgrYz6xrOwRJ/view?usp=sharing">Paper</a> | <a href="https://arxiv.org/pdf/2311.16493.pdf">arXiv</a> | <a href="https://niujinshuchong.github.io/mip-splatting/">Project Page</a>  | <a href="https://niujinshuchong.github.io/mip-splatting-demo/">Online Viewer</a> </h3>
   <div align="center"></div>
 </p>
 
@@ -58,7 +58,7 @@ python convert_blender_data.py --blender_dir nerf_synthetic/ --out_dir multi-sca
 ## Mip-NeRF 360 Dataset
 Please download the data from the [Mip-NeRF 360](https://jonbarron.info/mipnerf360/) and request the authors for the treehill and flowers scenes.
 
-# Training and evaluation
+# Training and Evaluation
 ```
 # single-scale training and single-scale testing on NeRF-synthetic dataset
 python scripts/run_nerf_synthetic_stmt.py 
@@ -72,6 +72,13 @@ python scripts/run_mipnerf360.py
 # single-scale training and multi-scale testing on the mip-nerf 360 dataset
 python scripts/run_mipnerf360_stmt.py 
 ```
+
+# Online viewer
+After training, you can fuse the 3D smoothing filter to the Gaussian parameters with
+```
+python create_fused_ply.py -m {model_dir}/{scene} --output_ply fused/{scene}_fused.ply"
+```
+Then use our [online viewer](https://niujinshuchong.github.io/mip-splatting-demo) to visualize the trained model.
 
 # Acknowledgements
 This project is built upon [3DGS](https://github.com/graphdeco-inria/gaussian-splatting). Please follow the license of 3DGS. We thank all the authors for their great work and repos. 
