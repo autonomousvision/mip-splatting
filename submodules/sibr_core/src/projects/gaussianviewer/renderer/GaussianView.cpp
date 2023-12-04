@@ -159,12 +159,11 @@ int loadPly(const char* filename,
 			rot[k].rot[j] = points[i].rot.rot[j] / length;
 
 		// Exponentiate scale
-		for(int j = 0; j < 3; j++) {
-			scales[k].scale[j] = points[i].scale.scale[j];
-		}
+		for(int j = 0; j < 3; j++)
+			scales[k].scale[j] = exp(points[i].scale.scale[j]);
 
 		// Activate alpha
-		opacities[k] = points[i].opacity;
+		opacities[k] = sigmoid(points[i].opacity);
 
 		shs[k].shs[0] = points[i].shs.shs[0];
 		shs[k].shs[1] = points[i].shs.shs[1];
@@ -519,7 +518,7 @@ void sibr::GaussianView::onRenderIBR(sibr::IRenderTarget & dst, const sibr::Came
 			cam_pos_cuda,
 			tan_fovx,
 			tan_fovy,
-			0.2, 
+			0.1, 
 			false,
 			image_cuda,
 			nullptr,
