@@ -29,6 +29,8 @@ We introduce a 3D smoothing filter and a 2D Mip filter for 3D Gaussian Splatting
 </p>
 <br>
 
+# Update
+We integrated an improved densification metric proposed in [Gaussian Opacity Fields](https://niujinshuchong.github.io/gaussian-opacity-fields/), which significantly improves the novel view synthesis results, please check the [paper](https://arxiv.org/pdf/2404.10772.pdf) for details. Please download the lastest code to try it out. 
 
 # Installation
 Clone the repository and create an anaconda environment using
@@ -91,5 +93,14 @@ If you find our code or paper useful, please cite
   title     = {Mip-Splatting: Alias-free 3D Gaussian Splatting},
   journal   = {arXiv:2311.16493},
   year      = {2023},
+}
+```
+If you find our improved densification metric useful, please kindly cite
+```
+@article{Yu2024GOF,
+  author    = {Yu, Zehao and Sattler, Torsten and Geiger, Andreas},
+  title     = {Gaussian Opacity Fields: Efficient High-quality Compact Surface Reconstruction in Unbounded Scenes},
+  journal   = {arXiv:2404.10772},
+  year      = {2024},
 }
 ```

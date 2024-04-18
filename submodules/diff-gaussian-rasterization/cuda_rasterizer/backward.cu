@@ -590,6 +590,12 @@ renderCUDA(
 			atomicAdd(&dL_dmean2D[global_id].x, dL_dG * dG_ddelx * ddelx_dx);
 			atomicAdd(&dL_dmean2D[global_id].y, dL_dG * dG_ddely * ddely_dy);
 
+			// we use this new metric for densification, please check https://arxiv.org/pdf/2404.10772.pdf Densification section for more details.
+			const float abs_dL_dmean2D = abs(dL_dG * dG_ddelx * ddelx_dx) + abs(dL_dG * dG_ddely * ddely_dy);
+			atomicAdd(&dL_dmean2D[global_id].z, abs_dL_dmean2D);
+			//TODO count stats
+			// atomicAdd(&dL_dconic2D[global_id].z, 1.0f);
+
 			// Update gradients w.r.t. 2D covariance (2x2 matrix, symmetric)
 			atomicAdd(&dL_dconic2D[global_id].x, -0.5f * gdx * d.x * dL_dG);
 			atomicAdd(&dL_dconic2D[global_id].y, -0.5f * gdx * d.y * dL_dG);
