@@ -64,7 +64,7 @@ Please download the data from the [Mip-NeRF 360](https://jonbarron.info/mipnerf3
 
 # Training and Evaluation
 ```
-# single-scale training and single-scale testing on NeRF-synthetic dataset
+# single-scale training and multi-scale testing on NeRF-synthetic dataset
 python scripts/run_nerf_synthetic_stmt.py 
 
 # multi-scale training and multi-scale testing on NeRF-synthetic dataset
