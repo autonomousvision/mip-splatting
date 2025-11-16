@@ -15,7 +15,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: recursive  # Important: initialize glm submodule
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -55,9 +55,9 @@ jobs:
         run: |
           Write-Host "=== Building binary wheel with CUDA extensions ==="
           Write-Host "Build environment:"
-          Write-Host " CUDA_PATH: $env:CUDA_PATH"
-          Write-Host " TORCH_CUDA_ARCH_LIST: $env:TORCH_CUDA_ARCH_LIST"
-          Write-Host " MAX_JOBS: $env:MAX_JOBS"
+          Write-Host "  CUDA_PATH: $env:CUDA_PATH"
+          Write-Host "  TORCH_CUDA_ARCH_LIST: $env:TORCH_CUDA_ARCH_LIST"
+          Write-Host "  MAX_JOBS: $env:MAX_JOBS"
           Write-Host ""
 
           python setup.py bdist_wheel > build.log 2>&1
@@ -67,15 +67,15 @@ jobs:
           Get-Content build.log
 
           if ($buildExitCode -ne 0) {
-            Write-Host "`n=== BUILD FAILED (exit code: $buildExitCode) ==="
-            exit $buildExitCode
+              Write-Host "`n=== BUILD FAILED (exit code: $buildExitCode) ==="
+              exit $buildExitCode
           }
 
           Write-Host "`n=== Built wheel ==="
           $wheels = Get-ChildItem dist\*.whl
           foreach ($wheel in $wheels) {
-            Write-Host " Wheel: $($wheel.Name)"
-            Write-Host " Size: $([math]::Round($wheel.Length / 1MB, 2)) MB"
+              Write-Host "  Wheel: $($wheel.Name)"
+              Write-Host "  Size: $([math]::Round($wheel.Length / 1MB, 2)) MB"
           }
         shell: powershell
         env:
@@ -102,13 +102,13 @@ jobs:
           $wheel = Get-ChildItem dist\*.whl | Select-Object -First 1
           pip install $wheel.FullName
 
-          Write-Host "`n=== Testing imports ==="
+          Write-Host "`n=== Testing import ==="
           python -c "import diff_gaussian_rasterization; print('[OK] diff_gaussian_rasterization imported successfully')"
           python -c "import simple_knn; print('[OK] simple_knn imported successfully')"
 
-          Write-Host "`n=== Verifying pre-compiled extensions ==="
-          python -c "import torch; import diff_gaussian_rasterization._C; print('[OK] diff_gaussian_rasterization CUDA extension found')"
-          python -c "import torch; import simple_knn._C; print('[OK] simple_knn CUDA extension found')"
+          Write-Host "`n=== Verifying pre-compiled extension ==="
+          python -c "import torch; import diff_gaussian_rasterization._C; print('[OK] Pre-compiled CUDA extension found')"
+          python -c "import torch; import simple_knn._C; print('[OK] Pre-compiled CUDA extension found')"
         shell: powershell
 
       - name: Display build summary
@@ -118,11 +118,11 @@ jobs:
           Write-Host "=========================================="
           Write-Host "`nBuilt wheel:"
           Get-ChildItem dist\*.whl | ForEach-Object {
-            Write-Host " 📦 $($_.Name)"
-            Write-Host " Size: $([math]::Round($_.Length / 1MB, 2)) MB"
+              Write-Host "  📦 $($_.Name)"
+              Write-Host "     Size: $([math]::Round($_.Length / 1MB, 2)) MB"
           }
           Write-Host "`n📥 To download:"
-          Write-Host " 1. Go to Actions tab in GitHub"
-          Write-Host " 2. Click on this workflow run"
-          Write-Host " 3. Download artifact from 'Artifacts' section"
+          Write-Host "  1. Go to Actions tab in GitHub"
+          Write-Host "  2. Click on this workflow run"
+          Write-Host "  3. Download artifact from 'Artifacts' section"
         shell: powershell
