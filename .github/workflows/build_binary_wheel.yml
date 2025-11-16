@@ -71,7 +71,7 @@ jobs:
           python -c "import simple_knn; print('simple_knn imported successfully')"
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheel-windows-py${{ matrix.python-version }}-cuda${{ matrix.cuda-version }}
           path: dist/*.whl
