@@ -1,27 +1,15 @@
 name: Build Binary Wheel (Windows)
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
-      - master
-    tags:
-      - 'v*'
+    branches: [ main, master ]
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
-  build_wheels:
-    name: Build wheel on Windows - Python ${{ matrix.python-version }} - CUDA ${{ matrix.cuda-version }}
+  build-windows-wheel:
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11']
-        cuda-version: ['11.8.0', '12.1.1']
 
     steps:
       - name: Checkout code
@@ -29,51 +17,112 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.11'
 
       - name: Install CUDA Toolkit
-        uses: Jimver/cuda-toolkit@v0.2.11
+        uses: Jimver/cuda-toolkit@v0.2.21
         with:
-          cuda: ${{ matrix.cuda-version }}
-          method: 'network'
+          cuda: '11.8.0'
 
-      - name: Install PyTorch with CUDA 11.8
-        if: matrix.cuda-version == '11.8.0'
-        run: |
-          pip install torch==2.2.2+cu118 torchvision==0.17.2+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Install PyTorch with CUDA 12.1
-        if: matrix.cuda-version == '12.1.1'
+      - name: Verify MSVC setup
         run: |
-          pip install torch==2.2.2+cu121 torchvision==0.17.2+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
+          Write-Host "=== Setting up MSVC environment ==="
+          Write-Host "Visual Studio path: $env:VSINSTALLDIR"
+          Write-Host ""
+          Write-Host "Verifying cl.exe is now in PATH:"
+          where.exe cl.exe
+        shell: powershell
+
+      - name: Install PyTorch
+        run: |
+          Write-Host "=== Installing PyTorch ==="
+          pip install torch==2.2.2 --extra-index-url https://download.pytorch.org/whl/cu118
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
+        shell: powershell
 
       - name: Install build dependencies
         run: |
-          pip install wheel setuptools ninja build
+          pip install wheel setuptools ninja
+        shell: powershell
 
-      - name: Build wheel
+      - name: Build binary wheel
         run: |
-          python -m build --wheel
-        env:
-          CUDA_HOME: ${{ env.CUDA_PATH }}
-          CUDA_PATH: ${{ env.CUDA_PATH }}
-          TORCH_CUDA_ARCH_LIST: "6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"
+          Write-Host "=== Building binary wheel with CUDA extensions ==="
+          Write-Host "Build environment:"
+          Write-Host " CUDA_PATH: $env:CUDA_PATH"
+          Write-Host " TORCH_CUDA_ARCH_LIST: $env:TORCH_CUDA_ARCH_LIST"
+          Write-Host " MAX_JOBS: $env:MAX_JOBS"
+          Write-Host ""
 
-      - name: Upload wheel
+          python setup.py bdist_wheel > build.log 2>&1
+          $buildExitCode = $LASTEXITCODE
+
+          Write-Host "`n=== Build Output ==="
+          Get-Content build.log
+
+          if ($buildExitCode -ne 0) {
+            Write-Host "`n=== BUILD FAILED (exit code: $buildExitCode) ==="
+            exit $buildExitCode
+          }
+
+          Write-Host "`n=== Built wheel ==="
+          $wheels = Get-ChildItem dist\*.whl
+          foreach ($wheel in $wheels) {
+            Write-Host " Wheel: $($wheel.Name)"
+            Write-Host " Size: $([math]::Round($wheel.Length / 1MB, 2)) MB"
+          }
+        shell: powershell
+        env:
+          TORCH_CUDA_ARCH_LIST: "6.0 6.1 7.0 7.5 8.0 8.6 8.9 9.0"
+          MAX_JOBS: "2"
+
+      - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-windows-py${{ matrix.python-version }}-cuda${{ matrix.cuda-version }}
+          name: mip-splatting-binary-wheel-py311-cu118-win_amd64
           path: dist/*.whl
           retention-days: 30
 
-      - name: Install wheel for testing
+      - name: Test wheel installation
         run: |
-          pip install dist/*.whl
+          Write-Host "=== Creating test environment ==="
+          python -m venv test_env
+          .\test_env\Scripts\Activate.ps1
 
-      - name: Test installation
+          Write-Host "`n=== Installing PyTorch in test env ==="
+          pip install torch==2.2.2 --extra-index-url https://download.pytorch.org/whl/cu118
+
+          Write-Host "`n=== Installing built wheel ==="
+          $wheel = Get-ChildItem dist\*.whl | Select-Object -First 1
+          pip install $wheel.FullName
+
+          Write-Host "`n=== Testing imports ==="
+          python -c "import diff_gaussian_rasterization; print('[OK] diff_gaussian_rasterization imported successfully')"
+          python -c "import simple_knn; print('[OK] simple_knn imported successfully')"
+
+          Write-Host "`n=== Verifying pre-compiled extensions ==="
+          python -c "import torch; import diff_gaussian_rasterization._C; print('[OK] diff_gaussian_rasterization CUDA extension found')"
+          python -c "import torch; import simple_knn._C; print('[OK] simple_knn CUDA extension found')"
+        shell: powershell
+
+      - name: Display build summary
         run: |
-          python -c "import diff_gaussian_rasterization; print('diff_gaussian_rasterization imported successfully')"
-          python -c "import simple_knn; print('simple_knn imported successfully')"
+          Write-Host "`n=========================================="
+          Write-Host "✅ BUILD SUCCESSFUL!"
+          Write-Host "=========================================="
+          Write-Host "`nBuilt wheel:"
+          Get-ChildItem dist\*.whl | ForEach-Object {
+            Write-Host " 📦 $($_.Name)"
+            Write-Host " Size: $([math]::Round($_.Length / 1MB, 2)) MB"
+          }
+          Write-Host "`n📥 To download:"
+          Write-Host " 1. Go to Actions tab in GitHub"
+          Write-Host " 2. Click on this workflow run"
+          Write-Host " 3. Download artifact from 'Artifacts' section"
+        shell: powershell
