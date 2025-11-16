@@ -86,6 +86,8 @@ jobs:
           }
         shell: powershell
         env:
+          CUDA_HOME: ${{ env.CUDA_PATH }}
+          CUDA_PATH: ${{ env.CUDA_PATH }}
           TORCH_CUDA_ARCH_LIST: "6.0 6.1 7.0 7.5 8.0 8.6 8.9 9.0"
           MAX_JOBS: "2"
 
