@@ -59,7 +59,15 @@ jobs:
           python -m build --wheel
         env:
           CUDA_HOME: ${{ env.CUDA_PATH }}
+          CUDA_PATH: ${{ env.CUDA_PATH }}
           TORCH_CUDA_ARCH_LIST: "6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-windows-py${{ matrix.python-version }}-cuda${{ matrix.cuda-version }}
+          path: dist/*.whl
+          retention-days: 30
 
       - name: Install wheel for testing
         run: |
@@ -69,10 +77,3 @@ jobs:
         run: |
           python -c "import diff_gaussian_rasterization; print('diff_gaussian_rasterization imported successfully')"
           python -c "import simple_knn; print('simple_knn imported successfully')"
-
-      - name: Upload wheel
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheel-windows-py${{ matrix.python-version }}-cuda${{ matrix.cuda-version }}
-          path: dist/*.whl
-          retention-days: 30
