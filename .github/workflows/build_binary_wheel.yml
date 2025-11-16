@@ -69,11 +69,9 @@ jobs:
           Write-Host " MAX_JOBS: $env:MAX_JOBS"
           Write-Host ""
 
-          python setup.py bdist_wheel > build.log 2>&1
+          $ErrorActionPreference = "Continue"
+          python setup.py bdist_wheel 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
-
-          Write-Host "`n=== Build Output ==="
-          Get-Content build.log
 
           if ($buildExitCode -ne 0) {
             Write-Host "`n=== BUILD FAILED (exit code: $buildExitCode) ==="
