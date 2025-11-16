@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
-        cuda-version: ['11.8.0', '12.1.0']
+        cuda-version: ['11.8.0', '12.1.1']
 
     steps:
       - name: Checkout code
@@ -46,7 +46,7 @@ jobs:
           pip install torch==2.2.2+cu118 torchvision==0.17.2+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
 
       - name: Install PyTorch with CUDA 12.1
-        if: matrix.cuda-version == '12.1.0'
+        if: matrix.cuda-version == '12.1.1'
         run: |
           pip install torch==2.2.2+cu121 torchvision==0.17.2+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
 
