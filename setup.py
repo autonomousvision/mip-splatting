@@ -1,25 +1,33 @@
 from setuptools import setup, find_packages
 from torch.utils.cpp_extension import CUDAExtension, BuildExtension
 import os
+import sys
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Compiler flags for cross-platform compatibility
-cxx_flags = []
-nvcc_flags = []
+# This binary wheel build is designed for Windows only
+if os.name != 'nt':
+    print("=" * 70)
+    print("ERROR: This binary wheel build is configured for Windows only.")
+    print("For Linux installation, please use the original method:")
+    print("  pip install submodules/diff-gaussian-rasterization")
+    print("  pip install submodules/simple-knn/")
+    print("=" * 70)
+    sys.exit(1)
 
-if os.name == 'nt':  # Windows
-    cxx_flags = [
-        '/D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH',
-        '/D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS',
-        "/wd4624"  # destructor was implicitly defined as deleted
-    ]
-    nvcc_flags.extend([
-        '-allow-unsupported-compiler',
-        '-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH',
-        '--expt-relaxed-constexpr',
-        '--expt-extended-lambda',
-    ])
+# Windows-specific compiler flags for MSVC + CUDA compatibility
+cxx_flags = [
+    '/D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH',
+    '/D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS',
+    "/wd4624"  # destructor was implicitly defined as deleted
+]
+
+nvcc_flags = [
+    '-allow-unsupported-compiler',
+    '-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH',
+    '--expt-relaxed-constexpr',
+    '--expt-extended-lambda',
+]
 
 # Path to GLM library in diff-gaussian-rasterization
 glm_include = os.path.join(root_dir, "submodules/diff-gaussian-rasterization/third_party/glm/")
@@ -85,7 +93,7 @@ setup(
     cmdclass={
         'build_ext': BuildExtension.with_options(
             use_ninja=True,
-            max_jobs=2 if os.name == 'nt' else None  # Limit parallel jobs on Windows
+            max_jobs=2  # Limit parallel jobs on Windows to prevent resource exhaustion
         )
     },
     install_requires=[

@@ -1,4 +1,4 @@
-name: Build Binary Wheel
+name: Build Binary Wheel (Windows)
 
 on:
   workflow_dispatch:
@@ -15,20 +15,13 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheel on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build wheel on Windows - Python ${{ matrix.python-version }} - CUDA ${{ matrix.cuda-version }}
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11']
-        cuda-version: ['11.3', '11.8', '12.1']
-        exclude:
-          # Exclude some combinations to reduce build time
-          - os: ubuntu-20.04
-            cuda-version: '12.1'
-          - os: windows-latest
-            cuda-version: '11.3'
+        cuda-version: ['11.8', '12.1']
 
     steps:
       - name: Checkout code
@@ -41,38 +34,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install CUDA Toolkit (Linux)
-        if: runner.os == 'Linux'
-        uses: Jimver/cuda-toolkit@v0.2.11
-        with:
-          cuda: ${{ matrix.cuda-version }}
-          method: 'network'
-          sub-packages: '["nvcc", "cudart", "cudart-dev"]'
-
-      - name: Install CUDA Toolkit (Windows)
-        if: runner.os == 'Windows'
+      - name: Install CUDA Toolkit
         uses: Jimver/cuda-toolkit@v0.2.11
         with:
           cuda: ${{ matrix.cuda-version }}
           method: 'network'
 
-      - name: Install PyTorch with CUDA (Linux)
-        if: runner.os == 'Linux' && matrix.cuda-version == '11.3'
-        run: |
-          pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
-
-      - name: Install PyTorch with CUDA (Linux CUDA 11.8)
-        if: runner.os == 'Linux' && matrix.cuda-version == '11.8'
-        run: |
-          pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
-
-      - name: Install PyTorch with CUDA (Windows)
-        if: runner.os == 'Windows' && matrix.cuda-version == '11.8'
+      - name: Install PyTorch with CUDA 11.8
+        if: matrix.cuda-version == '11.8'
         run: |
           pip install torch==2.2.2+cu118 torchvision==0.17.2+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
 
-      - name: Install PyTorch with CUDA (Windows CUDA 12.1)
-        if: runner.os == 'Windows' && matrix.cuda-version == '12.1'
+      - name: Install PyTorch with CUDA 12.1
+        if: matrix.cuda-version == '12.1'
         run: |
           pip install torch==2.2.2+cu121 torchvision==0.17.2+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
 
@@ -99,35 +73,6 @@ jobs:
       - name: Upload wheel
         uses: actions/upload-artifact@v3
         with:
-          name: wheel-${{ matrix.os }}-py${{ matrix.python-version }}-cuda${{ matrix.cuda-version }}
+          name: wheel-windows-py${{ matrix.python-version }}-cuda${{ matrix.cuda-version }}
           path: dist/*.whl
-          retention-days: 30
-
-  build_sdist:
-    name: Build source distribution
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install build dependencies
-        run: |
-          pip install build
-
-      - name: Build sdist
-        run: |
-          python -m build --sdist
-
-      - name: Upload sdist
-        uses: actions/upload-artifact@v3
-        with:
-          name: sdist
-          path: dist/*.tar.gz
           retention-days: 30
