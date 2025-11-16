@@ -1,0 +1,133 @@
+name: Build Binary Wheel
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build_wheels:
+    name: Build wheel on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, windows-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+        cuda-version: ['11.3', '11.8', '12.1']
+        exclude:
+          # Exclude some combinations to reduce build time
+          - os: ubuntu-20.04
+            cuda-version: '12.1'
+          - os: windows-latest
+            cuda-version: '11.3'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install CUDA Toolkit (Linux)
+        if: runner.os == 'Linux'
+        uses: Jimver/cuda-toolkit@v0.2.11
+        with:
+          cuda: ${{ matrix.cuda-version }}
+          method: 'network'
+          sub-packages: '["nvcc", "cudart", "cudart-dev"]'
+
+      - name: Install CUDA Toolkit (Windows)
+        if: runner.os == 'Windows'
+        uses: Jimver/cuda-toolkit@v0.2.11
+        with:
+          cuda: ${{ matrix.cuda-version }}
+          method: 'network'
+
+      - name: Install PyTorch with CUDA (Linux)
+        if: runner.os == 'Linux' && matrix.cuda-version == '11.3'
+        run: |
+          pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
+
+      - name: Install PyTorch with CUDA (Linux CUDA 11.8)
+        if: runner.os == 'Linux' && matrix.cuda-version == '11.8'
+        run: |
+          pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
+
+      - name: Install PyTorch with CUDA (Windows)
+        if: runner.os == 'Windows' && matrix.cuda-version == '11.8'
+        run: |
+          pip install torch==2.2.2+cu118 torchvision==0.17.2+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
+
+      - name: Install PyTorch with CUDA (Windows CUDA 12.1)
+        if: runner.os == 'Windows' && matrix.cuda-version == '12.1'
+        run: |
+          pip install torch==2.2.2+cu121 torchvision==0.17.2+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
+
+      - name: Install build dependencies
+        run: |
+          pip install wheel setuptools ninja build
+
+      - name: Build wheel
+        run: |
+          python -m build --wheel
+        env:
+          CUDA_HOME: ${{ env.CUDA_PATH }}
+          TORCH_CUDA_ARCH_LIST: "6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"
+
+      - name: Install wheel for testing
+        run: |
+          pip install dist/*.whl
+
+      - name: Test installation
+        run: |
+          python -c "import diff_gaussian_rasterization; print('diff_gaussian_rasterization imported successfully')"
+          python -c "import simple_knn; print('simple_knn imported successfully')"
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheel-${{ matrix.os }}-py${{ matrix.python-version }}-cuda${{ matrix.cuda-version }}
+          path: dist/*.whl
+          retention-days: 30
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install build dependencies
+        run: |
+          pip install build
+
+      - name: Build sdist
+        run: |
+          python -m build --sdist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v3
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          retention-days: 30
