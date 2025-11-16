@@ -22,10 +22,42 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}-
+            ${{ runner.os }}-pip-
+
       - name: Install CUDA Toolkit
-        uses: Jimver/cuda-toolkit@v0.2.21
+        uses: Jimver/cuda-toolkit@v0.2.29
         with:
           cuda: '11.8.0'
+
+      - name: Verify environment
+        run: |
+          $ErrorActionPreference = 'Continue'
+          Write-Host "=== Python Version ==="
+          python --version
+
+          Write-Host "`n=== NVCC Version ==="
+          nvcc --version
+
+          Write-Host "`n=== CUDA Environment ==="
+          Write-Host "CUDA_PATH: $env:CUDA_PATH"
+
+          Write-Host "`n=== MSVC Compiler (optional check) ==="
+          $clPath = (Get-Command cl.exe -ErrorAction SilentlyContinue)
+          if ($clPath) {
+              Write-Host "Found at: $($clPath.Source)"
+          } else {
+              Write-Host "Not in PATH (will be auto-detected during build)"
+          }
+
+          Write-Host "`n[OK] Verification complete"
+        shell: powershell
 
       - name: Set up MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
@@ -39,6 +71,14 @@ jobs:
           where.exe cl.exe
         shell: powershell
 
+      - name: Cache PyTorch
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pytorch-2.2.2-cu118-${{ runner.tool_cache }}\windows\Python\3.11.9\x64
+          restore-keys: |
+            ${{ runner.os }}-pytorch-2.2.2-cu118-
+
       - name: Install PyTorch
         run: |
           Write-Host "=== Installing PyTorch ==="
@@ -46,9 +86,26 @@ jobs:
           python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
         shell: powershell
 
+      - name: Verify PyTorch
+        run: |
+          Write-Host "=== Verifying PyTorch ==="
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
+        shell: powershell
+
       - name: Install build dependencies
         run: |
+          pip install --upgrade pip
           pip install wheel setuptools ninja
+        shell: powershell
+
+      - name: Install numpy
+        run: |
+          pip install numpy==1.26.4
+        shell: powershell
+
+      - name: Final verification
+        run: |
+          python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}'); print(f'CUDA version: {torch.version.cuda}')"
         shell: powershell
 
       - name: Build binary wheel
