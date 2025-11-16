@@ -21,16 +21,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
-
-      - name: Cache PyTorch and dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~\AppData\Local\pip\Cache
-          key: ${{ runner.os }}-pip-torch2.2.2-cu118-numpy1.26.1
-          restore-keys: |
-            ${{ runner.os }}-pip-torch2.2.2-
-            ${{ runner.os }}-pip-
 
       - name: Install CUDA Toolkit
         uses: Jimver/cuda-toolkit@v0.2.21
@@ -49,15 +39,16 @@ jobs:
           where.exe cl.exe
         shell: powershell
 
-      - name: Install PyTorch and dependencies
+      - name: Install PyTorch
         run: |
-          Write-Host "=== Installing PyTorch and dependencies ==="
-          pip install --upgrade pip
+          Write-Host "=== Installing PyTorch ==="
           pip install torch==2.2.2 --extra-index-url https://download.pytorch.org/whl/cu118
-          pip install numpy==1.26.1 wheel setuptools ninja
-          Write-Host "`n=== Verifying installations ==="
-          python -c "import torch; print(f'PyTorch {torch.__version__} - CUDA available: {torch.cuda.is_available()}')"
-          python -c "import numpy; print(f'NumPy {numpy.__version__}')"
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
+        shell: powershell
+
+      - name: Install build dependencies
+        run: |
+          pip install wheel setuptools ninja
         shell: powershell
 
       - name: Build binary wheel
@@ -69,9 +60,11 @@ jobs:
           Write-Host " MAX_JOBS: $env:MAX_JOBS"
           Write-Host ""
 
-          $ErrorActionPreference = "Continue"
-          python setup.py bdist_wheel 2>&1 | Tee-Object -FilePath build.log
+          python setup.py bdist_wheel > build.log 2>&1
           $buildExitCode = $LASTEXITCODE
+
+          Write-Host "`n=== Build Output ==="
+          Get-Content build.log
 
           if ($buildExitCode -ne 0) {
             Write-Host "`n=== BUILD FAILED (exit code: $buildExitCode) ==="
@@ -86,8 +79,6 @@ jobs:
           }
         shell: powershell
         env:
-          CUDA_HOME: ${{ env.CUDA_PATH }}
-          CUDA_PATH: ${{ env.CUDA_PATH }}
           TORCH_CUDA_ARCH_LIST: "6.0 6.1 7.0 7.5 8.0 8.6 8.9 9.0"
           MAX_JOBS: "2"
 
