@@ -34,7 +34,7 @@ jobs:
       - name: Install CUDA Toolkit
         uses: Jimver/cuda-toolkit@v0.2.29
         with:
-          cuda: '11.8.0'
+          cuda: '12.4.0'
 
       - name: Verify environment
         run: |
@@ -77,12 +77,12 @@ jobs:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pytorch-2.2.2-cu118-${{ runner.tool_cache }}\windows\Python\3.11.9\x64
           restore-keys: |
-            ${{ runner.os }}-pytorch-2.2.2-cu118-
+            ${{ runner.os }}-pytorch-2.6.0+cu124-
 
       - name: Install PyTorch
         run: |
           Write-Host "=== Installing PyTorch ==="
-          pip install torch==2.2.2 --extra-index-url https://download.pytorch.org/whl/cu118
+          pip install torch==2.6.0 --extra-index-url https://download.pytorch.org/whl/cu124
           python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
         shell: powershell
 
@@ -145,7 +145,7 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mip-splatting-binary-wheel-py311-cu118-win_amd64
+          name: mip-splatting-binary-wheel-py311-cu124-win_amd64
           path: dist/*.whl
           retention-days: 30
 
@@ -156,7 +156,7 @@ jobs:
           .\test_env\Scripts\Activate.ps1
 
           Write-Host "`n=== Installing PyTorch in test env ==="
-          pip install torch==2.2.2 --extra-index-url https://download.pytorch.org/whl/cu118
+          pip install torch==2.6.0 --extra-index-url https://download.pytorch.org/whl/cu124
 
           Write-Host "`n=== Installing built wheel ==="
           $wheel = Get-ChildItem dist\*.whl | Select-Object -First 1
