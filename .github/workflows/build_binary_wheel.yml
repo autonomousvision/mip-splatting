@@ -1,0 +1,188 @@
+name: Build Binary Wheel (Windows)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows-wheel:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive  # Important: initialize glm submodule
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}-
+            ${{ runner.os }}-pip-
+
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.29
+        with:
+          cuda: '12.4.0'
+
+      - name: Verify environment
+        run: |
+          $ErrorActionPreference = 'Continue'
+          Write-Host "=== Python Version ==="
+          python --version
+
+          Write-Host "`n=== NVCC Version ==="
+          nvcc --version
+
+          Write-Host "`n=== CUDA Environment ==="
+          Write-Host "CUDA_PATH: $env:CUDA_PATH"
+
+          Write-Host "`n=== MSVC Compiler (optional check) ==="
+          $clPath = (Get-Command cl.exe -ErrorAction SilentlyContinue)
+          if ($clPath) {
+              Write-Host "Found at: $($clPath.Source)"
+          } else {
+              Write-Host "Not in PATH (will be auto-detected during build)"
+          }
+
+          Write-Host "`n[OK] Verification complete"
+        shell: powershell
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Verify MSVC setup
+        run: |
+          Write-Host "=== Setting up MSVC environment ==="
+          Write-Host "Visual Studio path: $env:VSINSTALLDIR"
+          Write-Host ""
+          Write-Host "Verifying cl.exe is now in PATH:"
+          where.exe cl.exe
+        shell: powershell
+
+      - name: Cache PyTorch
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pytorch-2.2.2-cu118-${{ runner.tool_cache }}\windows\Python\3.11.9\x64
+          restore-keys: |
+            ${{ runner.os }}-pytorch-2.6.0+cu124-
+
+      - name: Install PyTorch
+        run: |
+          Write-Host "=== Installing PyTorch ==="
+          pip install torch==2.6.0 --extra-index-url https://download.pytorch.org/whl/cu124
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
+        shell: powershell
+
+      - name: Verify PyTorch
+        run: |
+          Write-Host "=== Verifying PyTorch ==="
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
+        shell: powershell
+
+      - name: Install build dependencies
+        run: |
+          pip install --upgrade pip
+          pip install wheel setuptools ninja
+        shell: powershell
+
+      - name: Install numpy
+        run: |
+          pip install numpy==1.26.4
+        shell: powershell
+
+      - name: Final verification
+        run: |
+          python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}'); print(f'CUDA version: {torch.version.cuda}')"
+        shell: powershell
+
+      - name: Build binary wheel
+        run: |
+          Write-Host "=== Building binary wheel with CUDA extensions ==="
+          Write-Host "Build environment:"
+          Write-Host "  CUDA_PATH: $env:CUDA_PATH"
+          Write-Host "  CUDA_HOME: $env:CUDA_HOME"
+          Write-Host "  TORCH_CUDA_ARCH_LIST: $env:TORCH_CUDA_ARCH_LIST"
+          Write-Host "  MAX_JOBS: $env:MAX_JOBS"
+          Write-Host ""
+
+          $ErrorActionPreference = "Continue"
+          python setup.py bdist_wheel 2>&1 | Tee-Object -FilePath build.log
+          $buildExitCode = $LASTEXITCODE
+
+          if ($buildExitCode -ne 0) {
+              Write-Host "`n=== BUILD FAILED (exit code: $buildExitCode) ==="
+              Write-Host "Check build.log for details"
+              exit $buildExitCode
+          }
+
+          Write-Host "`n=== Built wheel ==="
+          $wheels = Get-ChildItem dist\*.whl
+          foreach ($wheel in $wheels) {
+              Write-Host "  Wheel: $($wheel.Name)"
+              Write-Host "  Size: $([math]::Round($wheel.Length / 1MB, 2)) MB"
+          }
+        shell: powershell
+        env:
+          DISTUTILS_USE_SDK: "1"
+          CUDA_HOME: ${{ env.CUDA_PATH }}
+          CUDA_PATH: ${{ env.CUDA_PATH }}
+          TORCH_CUDA_ARCH_LIST: "6.0 6.1 7.0 7.5 8.0 8.6 8.9 9.0"
+          MAX_JOBS: "2"
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mip-splatting-binary-wheel-py311-cu124-win_amd64
+          path: dist/*.whl
+          retention-days: 30
+
+      - name: Test wheel installation
+        run: |
+          Write-Host "=== Creating test environment ==="
+          python -m venv test_env
+          .\test_env\Scripts\Activate.ps1
+
+          Write-Host "`n=== Installing PyTorch in test env ==="
+          pip install torch==2.6.0 --extra-index-url https://download.pytorch.org/whl/cu124
+
+          Write-Host "`n=== Installing built wheel ==="
+          $wheel = Get-ChildItem dist\*.whl | Select-Object -First 1
+          pip install $wheel.FullName
+
+          Write-Host "`n=== Testing import ==="
+          python -c "import diff_gaussian_rasterization; print('[OK] diff_gaussian_rasterization imported successfully')"
+          python -c "import simple_knn; print('[OK] simple_knn imported successfully')"
+
+          Write-Host "`n=== Verifying pre-compiled extension ==="
+          python -c "import torch; import diff_gaussian_rasterization._C; print('[OK] Pre-compiled CUDA extension found')"
+          python -c "import torch; import simple_knn._C; print('[OK] Pre-compiled CUDA extension found')"
+        shell: powershell
+
+      - name: Display build summary
+        run: |
+          Write-Host "`n=========================================="
+          Write-Host "✅ BUILD SUCCESSFUL!"
+          Write-Host "=========================================="
+          Write-Host "`nBuilt wheel:"
+          Get-ChildItem dist\*.whl | ForEach-Object {
+              Write-Host "  📦 $($_.Name)"
+              Write-Host "     Size: $([math]::Round($_.Length / 1MB, 2)) MB"
+          }
+          Write-Host "`n📥 To download:"
+          Write-Host "  1. Go to Actions tab in GitHub"
+          Write-Host "  2. Click on this workflow run"
+          Write-Host "  3. Download artifact from 'Artifacts' section"
+        shell: powershell

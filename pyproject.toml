@@ -1,0 +1,56 @@
+[build-system]
+requires = [
+    "setuptools>=61.0",
+    "wheel",
+    "torch>=1.12.1",
+    "ninja"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mip-splatting"
+version = "0.1.0"
+description = "Mip-Splatting: Alias-free 3D Gaussian Splatting"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Free for non-commercial, research and evaluation use"}
+authors = [
+    {name = "Zehao Yu"},
+    {name = "Anpei Chen"},
+    {name = "Binbin Huang"},
+    {name = "Torsten Sattler"},
+    {name = "Andreas Geiger"}
+]
+keywords = ["3D Gaussian Splatting", "Neural Rendering", "Computer Vision", "CUDA"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "torch>=1.12.1",
+    "open3d",
+    "plyfile",
+    "ninja",
+    "GPUtil",
+    "opencv-python",
+    "lpips"
+]
+
+[project.urls]
+Homepage = "https://niujinshuchong.github.io/mip-splatting/"
+Repository = "https://github.com/autonomousvision/mip-splatting"
+Paper = "https://arxiv.org/pdf/2311.16493.pdf"
+
+[tool.setuptools]
+packages = ["diff_gaussian_rasterization", "simple_knn"]
+
+[tool.setuptools.package-dir]
+diff_gaussian_rasterization = "submodules/diff-gaussian-rasterization/diff_gaussian_rasterization"
+simple_knn = "submodules/simple-knn/simple_knn"

@@ -1,0 +1,26 @@
+# Include all necessary files for building the package
+include README.md
+include LICENSE.md
+include requirements.txt
+include pyproject.toml
+include setup.py
+
+# Include submodule sources
+recursive-include submodules/diff-gaussian-rasterization *.cu *.cpp *.h *.cuh
+recursive-include submodules/diff-gaussian-rasterization/third_party/glm *.hpp *.h *.inl
+recursive-include submodules/simple-knn *.cu *.cpp *.h *.cuh
+
+# Include Python packages
+recursive-include submodules/diff-gaussian-rasterization/diff_gaussian_rasterization *.py
+recursive-include submodules/simple-knn/simple_knn *.py
+
+# Exclude unnecessary files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude *.so
+global-exclude *.dylib
+global-exclude *.dll
+global-exclude .git*
+global-exclude .DS_Store
+recursive-exclude * *.egg-info
